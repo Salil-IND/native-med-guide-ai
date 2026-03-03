@@ -19,12 +19,16 @@ import com.runanywhere.kotlin_starter_example.ui.screens.VisionScreen
 import com.runanywhere.kotlin_starter_example.ui.screens.VoicePipelineScreen
 import com.runanywhere.kotlin_starter_example.ui.theme.KotlinStarterTheme
 import android.util.Log
+import androidx.lifecycle.lifecycleScope
 import com.runanywhere.sdk.core.onnx.ONNX
 import com.runanywhere.sdk.foundation.bridge.extensions.CppBridgeModelPaths
 import com.runanywhere.sdk.llm.llamacpp.LlamaCPP
 import com.runanywhere.sdk.public.RunAnywhere
 import com.runanywhere.sdk.public.SDKEnvironment
+import com.runanywhere.sdk.public.extensions.loadSTTModel
+import com.runanywhere.sdk.public.extensions.loadTTSVoice
 import com.runanywhere.sdk.storage.AndroidPlatformContext
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +59,19 @@ class MainActivity : ComponentActivity() {
         
         // Register default models
         ModelService.registerDefaultModels()
+        
+        // Pre-load voice models for emergency voice support
+        // This ensures mic button works immediately in the chat screen
+        lifecycleScope.launch {
+            try {
+                Log.i("MainActivity", "Pre-loading voice models for emergency support...")
+                RunAnywhere.loadSTTModel(ModelService.STT_MODEL_ID)
+                RunAnywhere.loadTTSVoice(ModelService.TTS_MODEL_ID)
+                Log.i("MainActivity", "Voice models loaded successfully")
+            } catch (e: Exception) {
+                Log.w("MainActivity", "Voice models not yet downloaded (will load on demand): ${e.message}")
+            }
+        }
         
         setContent {
             KotlinStarterTheme {
