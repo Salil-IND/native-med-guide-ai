@@ -20,6 +20,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Support both 4KB and 16KB page sizes for Android 15+ devices (Pixel 9+)
+        // This ensures compatibility with newer devices that use 16KB memory pages
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a", "x86_64"))
+        }
     }
 
     buildTypes {
@@ -48,6 +54,13 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        
+        // Support native libraries built for both 4KB and 16KB page sizes
+        // This is critical for Android 15+ devices (Pixel 9 and newer)
+        jniLibs {
+            pickFirsts.add("lib/arm64-v8a/libcrypto.so")
+            pickFirsts.add("lib/arm64-v8a/libssl.so")
         }
     }
 }
