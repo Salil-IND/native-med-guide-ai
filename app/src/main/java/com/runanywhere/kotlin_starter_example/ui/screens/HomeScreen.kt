@@ -2,13 +2,10 @@ package com.runanywhere.kotlin_starter_example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,139 +14,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.runanywhere.kotlin_starter_example.ui.components.FeatureCard
 import com.runanywhere.kotlin_starter_example.ui.theme.*
 
 @Composable
 fun HomeScreen(
     onNavigateToChat: () -> Unit,
-    onNavigateToSTT: () -> Unit,
-    onNavigateToTTS: () -> Unit,
-    onNavigateToVoicePipeline: () -> Unit,
-    onNavigateToToolCalling: () -> Unit,
-    onNavigateToVision: () -> Unit,
+    onNavigateToSTT: () -> Unit = {},
+    onNavigateToTTS: () -> Unit = {},
+    onNavigateToVoicePipeline: () -> Unit = {},
+    onNavigateToToolCalling: () -> Unit = {},
+    onNavigateToVision: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        PrimaryDark,
-                        Color(0xFF0F1629),
-                        PrimaryMid
-                    )
-                )
-            )
+            .background(PrimaryDark)
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp)
-        ) {
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            // Header
-            Header()
-            
-            Spacer(modifier = Modifier.height(40.dp))
-            
-            // Privacy info
-            PrivacyInfoCard()
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Feature grid
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.height(560.dp)
-            ) {
-                item {
-                    FeatureCard(
-                        title = "Chat",
-                        subtitle = "LLM Text Generation",
-                        icon = Icons.Rounded.Chat,
-                        gradientColors = listOf(AccentCyan, Color(0xFF0EA5E9)),
-                        onClick = onNavigateToChat
-                    )
-                }
-                
-                item {
-                    FeatureCard(
-                        title = "Speech",
-                        subtitle = "Speech to Text",
-                        icon = Icons.Rounded.Mic,
-                        gradientColors = listOf(AccentViolet, Color(0xFF7C3AED)),
-                        onClick = onNavigateToSTT
-                    )
-                }
-                
-                item {
-                    FeatureCard(
-                        title = "Voice",
-                        subtitle = "Text to Speech",
-                        icon = Icons.Rounded.VolumeUp,
-                        gradientColors = listOf(AccentPink, Color(0xFFDB2777)),
-                        onClick = onNavigateToTTS
-                    )
-                }
-                
-                item {
-                    FeatureCard(
-                        title = "Pipeline",
-                        subtitle = "Voice Agent",
-                        icon = Icons.Rounded.AutoAwesome,
-                        gradientColors = listOf(AccentGreen, Color(0xFF059669)),
-                        onClick = onNavigateToVoicePipeline
-                    )
-                }
-                
-                item {
-                    FeatureCard(
-                        title = "Tools",
-                        subtitle = "Function Calling",
-                        icon = Icons.Rounded.Build,
-                        gradientColors = listOf(AccentOrange, Color(0xFFEA580C)),
-                        onClick = onNavigateToToolCalling
-                    )
-                }
-                
-                item {
-                    FeatureCard(
-                        title = "Vision",
-                        subtitle = "Image Understanding",
-                        icon = Icons.Rounded.RemoveRedEye,
-                        gradientColors = listOf(AccentPink, Color(0xFFDB2777)),
-                        onClick = onNavigateToVision
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Model info
-            ModelInfoSection()
-            
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun Header() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Icon
+        Spacer(modifier = Modifier.height(60.dp))
+        
+        // Logo/Icon
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .size(80.dp)
+                .clip(RoundedCornerShape(20.dp))
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(AccentCyan, AccentViolet)
@@ -158,143 +52,151 @@ private fun Header() {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Rounded.Bolt,
+                imageVector = Icons.Rounded.HealthAndSafety,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(48.dp)
             )
         }
         
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
         // Title
-        Column {
-            Text(
-                text = "RunAnywhere",
-                style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimary
-            )
-            Text(
-                text = "Kotlin SDK Starter",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AccentCyan
-            )
-        }
-    }
-}
-
-@Composable
-private fun PrivacyInfoCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SurfaceCard.copy(alpha = 0.6f)
+        Text(
+            text = "Med-Guide",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = TextPrimary,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
-    ) {
-        Row(
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Subtitle
+        Text(
+            text = "An assistant for urgent medical guidance",
+            style = MaterialTheme.typography.bodyLarge,
+            color = AccentCyan,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        
+        Spacer(modifier = Modifier.height(80.dp))
+        
+        // Start button
+        Button(
+            onClick = onNavigateToChat,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AccentCyan
+            ),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Icon(
-                imageVector = Icons.Rounded.PrivacyTip,
+                imageVector = Icons.Rounded.HealthAndSafety,
                 contentDescription = null,
-                tint = AccentCyan.copy(alpha = 0.8f),
-                modifier = Modifier.size(28.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column {
-                Text(
-                    text = "Privacy-First On-Device AI",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "All AI processing happens locally on your device. No data ever leaves your phone.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModelInfoSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SurfaceCard.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            ModelInfoRow(
-                icon = Icons.Rounded.Memory,
-                title = "LLM",
-                value = "SmolLM2 360M"
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            ModelInfoRow(
-                icon = Icons.Rounded.RemoveRedEye,
-                title = "VLM",
-                value = "SmolVLM 256M"
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            ModelInfoRow(
-                icon = Icons.Rounded.Hearing,
-                title = "STT",
-                value = "Whisper Tiny"
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            ModelInfoRow(
-                icon = Icons.Rounded.RecordVoiceOver,
-                title = "TTS",
-                value = "Piper Lessac"
-            )
-        }
-    }
-}
-
-@Composable
-private fun ModelInfoRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    value: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = TextMuted,
-                modifier = Modifier.size(20.dp)
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary
+                text = "Start Chat",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color.White
             )
         }
         
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = AccentCyan
+        Spacer(modifier = Modifier.height(60.dp))
+        
+        // Features info
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(SurfaceCard.copy(alpha = 0.6f))
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "Features",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = TextPrimary
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            FeatureItem(
+                icon = Icons.Rounded.Mic,
+                title = "Voice Input",
+                description = "Tap mic and speak your emergency"
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            FeatureItem(
+                icon = Icons.Rounded.RecordVoiceOver,
+                title = "Voice Output",
+                description = "Get audio responses automatically"
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            FeatureItem(
+                icon = Icons.Rounded.OfflineBolt,
+                title = "100% Offline",
+                description = "Works without internet connection"
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            FeatureItem(
+                icon = Icons.Rounded.LocationOn,
+                title = "Hospital Locator",
+                description = "Find nearest medical center"
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(40.dp))
+    }
+}
+
+@Composable
+private fun FeatureItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AccentCyan,
+            modifier = Modifier.size(24.dp)
         )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = TextPrimary
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted
+            )
+        }
     }
 }
