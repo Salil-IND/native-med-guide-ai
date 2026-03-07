@@ -1,4 +1,4 @@
-package com.runanywhere.kotlin_starter_example
+package com.runanywhere.ai
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

@@ -1,4 +1,4 @@
-package com.runanywhere.kotlin_starter_example.ui.theme
+package com.runanywhere.ai.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

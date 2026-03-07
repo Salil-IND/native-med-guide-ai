@@ -11,17 +11,17 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        // Local Maven for development (SDK with new streamVoiceSession API)
         mavenLocal()
         google()
         mavenCentral()
-        // JitPack for transitive dependencies (android-vad, PRDownloader)
+        // JitPack for RunAnywhere transitive dependencies
         maven { url = uri("https://jitpack.io") }
     }
 }
 
-rootProject.name = "kotlin-starter-example"
+rootProject.name = "MedGuideAI"
 include(":app")

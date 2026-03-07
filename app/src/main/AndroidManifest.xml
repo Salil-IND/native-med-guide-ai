@@ -1,37 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permissions for audio recording and internet access -->
+    <!-- Network for initial model download -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Voice input/output for hands-free emergency use -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    
-    <!-- Hardware features (not required, but recommended) -->
+
+    <!-- Vibration for emergency alerts -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Wake lock to keep screen on during emergencies -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Declare telephony as not required to suppress lint warning -->
     <uses-feature
-        android:name="android.hardware.microphone"
+        android:name="android.hardware.telephony"
         android:required="false" />
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="MedGuide AI"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Kotlinstarterexample"
-        tools:targetApi="31">
-        
+        android:theme="@style/Theme.KotlinStarterExample"
+        android:largeHeap="true"
+        android:hardwareAccelerated="true">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Kotlinstarterexample">
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>

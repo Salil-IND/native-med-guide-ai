@@ -1,4 +1,4 @@
-package com.runanywhere.kotlin_starter_example
+package com.runanywhere.ai
 
 import org.junit.Test
 

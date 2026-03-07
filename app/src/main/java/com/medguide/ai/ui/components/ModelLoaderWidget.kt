@@ -1,4 +1,4 @@
-package com.runanywhere.kotlin_starter_example.ui.components
+package com.runanywhere.ai.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
