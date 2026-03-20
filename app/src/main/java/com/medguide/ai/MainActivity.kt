@@ -107,8 +107,8 @@ fun MedGuideApp() {
             )
         }
         composable("models") {
-            ModelSetupScreen(
-                onNavigateBack = { navController.popBackStack() },
+               ModelSetupScreen(
+                onNavigateToHome = { navController.navigate("home") },
                 modelService = modelService
             )
         }
