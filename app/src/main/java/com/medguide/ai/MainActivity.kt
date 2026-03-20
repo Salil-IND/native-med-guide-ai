@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,39 +24,33 @@ import com.runanywhere.sdk.foundation.bridge.extensions.CppBridgeModelPaths
 import com.runanywhere.sdk.llm.llamacpp.LlamaCPP
 import com.runanywhere.sdk.public.RunAnywhere
 import com.runanywhere.sdk.public.SDKEnvironment
-import com.runanywhere.sdk.public.extensions.loadSTTModel
-import com.runanywhere.sdk.public.extensions.loadTTSVoice
 import com.runanywhere.sdk.storage.AndroidPlatformContext
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        AndroidPlatformContext.initialize(this)
         RunAnywhere.initialize(environment = SDKEnvironment.DEVELOPMENT)
+        AndroidPlatformContext.initialize(this)
 
-        val runanywherePath = java.io.File(filesDir, "runanywhere").absolutePath
-        CppBridgeModelPaths.setBaseDirectory(runanywherePath)
+        val runanywhereDir = java.io.File(filesDir, "runanywhere")
+        if (!runanywhereDir.exists()) {
+            runanywhereDir.mkdirs()
+        }
+
+        CppBridgeModelPaths.setBaseDirectory(runanywhereDir.absolutePath)
 
         try {
             LlamaCPP.register(priority = 100)
         } catch (e: Throwable) {
             Log.w("MainActivity", "LlamaCPP partial failure: ${e.message}")
         }
+
         ONNX.register(priority = 100)
 
         MedModelService.registerDefaultModels()
-
-        lifecycleScope.launch {
-            try {
-                RunAnywhere.loadSTTModel(MedModelService.STT_MODEL_ID)
-                RunAnywhere.loadTTSVoice(MedModelService.TTS_MODEL_ID)
-            } catch (e: Exception) {
-                Log.w("MainActivity", "Voice models not yet downloaded: ${e.message}")
-            }
-        }
 
         setContent {
             MedGuideTheme {
@@ -72,7 +65,7 @@ fun MedGuideApp() {
     val navController = rememberNavController()
     val modelService: MedModelService = viewModel()
 
-    NavHost(navController = navController, startDestination = "home") {
+    NavHost(navController = navController, startDestination = "models") {
         composable("home") {
             HomeScreen(
                 onNavigateToEmergency = { navController.navigate("emergency") },
