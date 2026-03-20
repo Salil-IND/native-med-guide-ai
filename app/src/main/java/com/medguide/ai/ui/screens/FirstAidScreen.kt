@@ -70,7 +70,7 @@ fun FirstAidScreen(
                 }
             }
 
-            items(MedicalKnowledgeBase.firstAidTopics) { topic ->
+            items(MedicalKnowledgeBase.firstAidTopics, key = { it.id }) { topic ->
                 FirstAidCard(
                     topic = topic,
                     isExpanded = expandedId == topic.id,
@@ -80,13 +80,18 @@ fun FirstAidScreen(
                     onToggle = { expandedId = if (expandedId == topic.id) null else topic.id },
                     onAskAI = { question ->
                         loadingId = topic.id
-                        scope.launch {
-                            val response = modelService.getMedicalResponse(
-                                question,
-                                context = "First Aid topic: ${topic.title}"
-                            )
-                            aiResponses = aiResponses + (topic.id to response)
-                            loadingId = null
+                       scope.launch {
+                            try {
+                                val response = modelService.getMedicalResponse(
+                                    question,
+                                    context = "First Aid topic: ${topic.title}"
+                                )
+                        
+                                aiResponses = aiResponses + (topic.id to response)
+                        
+                            } finally {
+                                loadingId = null
+                            }
                         }
                     }
                 )
