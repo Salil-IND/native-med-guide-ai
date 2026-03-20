@@ -118,9 +118,8 @@ Never give a definitive diagnosis.
 
     private suspend fun isModelDownloaded(modelId: String): Boolean {
 
-        val models = RunAnywhere.availableModels()
-
-        return models.find { it.id == modelId }?.localPath != null
+    return RunAnywhere.availableModels()
+        .any { it.id == modelId && it.localPath != null }
     }
 
     // ---------------- LLM ----------------
@@ -181,6 +180,7 @@ Never give a definitive diagnosis.
                     isSTTDownloading = true
 
                     RunAnywhere.downloadModel(STT_MODEL_ID)
+                        .catch { errorMessage = it.message }
                         .collect { progress ->
                             sttDownloadProgress = progress.progress
                         }
@@ -219,6 +219,7 @@ Never give a definitive diagnosis.
                     isTTSDownloading = true
 
                     RunAnywhere.downloadModel(TTS_MODEL_ID)
+                        .catch { errorMessage = it.message }
                         .collect { progress ->
                             ttsDownloadProgress = progress.progress
                         }
@@ -275,7 +276,7 @@ Never give a definitive diagnosis.
     // ---------------- Text To Speech ----------------
 
     suspend fun speakText(text: String) {
-
+        if (!isTTSLoaded) return
         try {
 
             RunAnywhere.tts(text)
@@ -288,15 +289,19 @@ Never give a definitive diagnosis.
 
     // ---------------- Speech To Text ----------------
 
-    suspend fun transcribeAudio(audio: ByteArray): String {
+   suspend fun transcribeAudio(audio: ByteArray): String {
 
         return try {
-
-            RunAnywhere.stt(audio)
-
+    
+            val result = RunAnywhere.stt(audio)
+    
+            result ?: "No speech detected"
+    
         } catch (e: Exception) {
-
-            "Transcription error: ${e.message}"
+    
+            Log.e("MedModelService", e.message ?: "STT error")
+    
+            "Transcription failed"
         }
     }
 
