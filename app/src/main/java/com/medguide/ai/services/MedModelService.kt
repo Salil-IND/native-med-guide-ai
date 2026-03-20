@@ -1,3 +1,4 @@
+```kotlin
 package com.medguide.ai.services
 
 import androidx.compose.runtime.*
@@ -13,43 +14,9 @@ import kotlinx.coroutines.launch
 
 class MedModelService : ViewModel() {
 
-    // ---------------- LLM State ----------------
-
-    var isLLMDownloading by mutableStateOf(false)
-        private set
-    var llmDownloadProgress by mutableFloatStateOf(0f)
-        private set
-    var isLLMLoading by mutableStateOf(false)
-        private set
-    var isLLMLoaded by mutableStateOf(false)
-        private set
-
-    // ---------------- STT State ----------------
-
-    var isSTTDownloading by mutableStateOf(false)
-        private set
-    var sttDownloadProgress by mutableFloatStateOf(0f)
-        private set
-    var isSTTLoading by mutableStateOf(false)
-        private set
-    var isSTTLoaded by mutableStateOf(false)
-        private set
-
-    // ---------------- TTS State ----------------
-
-    var isTTSDownloading by mutableStateOf(false)
-        private set
-    var ttsDownloadProgress by mutableFloatStateOf(0f)
-        private set
-    var isTTSLoading by mutableStateOf(false)
-        private set
-    var isTTSLoaded by mutableStateOf(false)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
-        private set
-
     companion object {
+
+        private const val TAG = "MedModelService"
 
         const val LLM_MODEL_ID = "smollm2-360m-instruct-q8_0"
         const val STT_MODEL_ID = "sherpa-onnx-whisper-tiny.en"
@@ -71,7 +38,6 @@ Never give a definitive diagnosis.
 
         fun registerDefaultModels() {
 
-            // LLM
             RunAnywhere.registerModel(
                 id = LLM_MODEL_ID,
                 name = "SmolLM2 360M",
@@ -81,7 +47,6 @@ Never give a definitive diagnosis.
                 memoryRequirement = 400_000_000
             )
 
-            // Speech To Text
             RunAnywhere.registerModel(
                 id = STT_MODEL_ID,
                 name = "Whisper Tiny",
@@ -90,7 +55,6 @@ Never give a definitive diagnosis.
                 modality = ModelCategory.SPEECH_RECOGNITION
             )
 
-            // Text To Speech
             RunAnywhere.registerModel(
                 id = TTS_MODEL_ID,
                 name = "Piper English Voice",
@@ -100,6 +64,51 @@ Never give a definitive diagnosis.
             )
         }
     }
+
+    // ---------------- LLM State ----------------
+
+    var isLLMDownloading by mutableStateOf(false)
+        private set
+
+    var llmDownloadProgress by mutableFloatStateOf(0f)
+        private set
+
+    var isLLMLoading by mutableStateOf(false)
+        private set
+
+    var isLLMLoaded by mutableStateOf(false)
+        private set
+
+    // ---------------- STT State ----------------
+
+    var isSTTDownloading by mutableStateOf(false)
+        private set
+
+    var sttDownloadProgress by mutableFloatStateOf(0f)
+        private set
+
+    var isSTTLoading by mutableStateOf(false)
+        private set
+
+    var isSTTLoaded by mutableStateOf(false)
+        private set
+
+    // ---------------- TTS State ----------------
+
+    var isTTSDownloading by mutableStateOf(false)
+        private set
+
+    var ttsDownloadProgress by mutableFloatStateOf(0f)
+        private set
+
+    var isTTSLoading by mutableStateOf(false)
+        private set
+
+    var isTTSLoaded by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -118,8 +127,8 @@ Never give a definitive diagnosis.
 
     private suspend fun isModelDownloaded(modelId: String): Boolean {
 
-    return RunAnywhere.availableModels()
-        .any { it.id == modelId && it.localPath != null }
+        return RunAnywhere.availableModels()
+            .any { it.id == modelId && it.localPath != null }
     }
 
     // ---------------- LLM ----------------
@@ -139,7 +148,11 @@ Never give a definitive diagnosis.
                     isLLMDownloading = true
 
                     RunAnywhere.downloadModel(LLM_MODEL_ID)
-                        .catch { errorMessage = it.message }
+                        .catch {
+                            errorMessage = it.message
+                            isLLMDownloading = false
+                            retun@launch
+                        }
                         .collect { progress ->
                             llmDownloadProgress = progress.progress
                         }
@@ -159,6 +172,8 @@ Never give a definitive diagnosis.
             } catch (e: Exception) {
 
                 errorMessage = e.message
+                Log.e(TAG, e.message ?: "LLM error")
+
                 isLLMLoading = false
                 isLLMDownloading = false
             }
@@ -180,7 +195,11 @@ Never give a definitive diagnosis.
                     isSTTDownloading = true
 
                     RunAnywhere.downloadModel(STT_MODEL_ID)
-                        .catch { errorMessage = it.message }
+                        .catch {
+                            errorMessage = it.message
+                            isSTTDownloading = false
+                            return@launch
+                        }
                         .collect { progress ->
                             sttDownloadProgress = progress.progress
                         }
@@ -200,6 +219,7 @@ Never give a definitive diagnosis.
             } catch (e: Exception) {
 
                 errorMessage = e.message
+                Log.e(TAG, e.message ?: "STT error")
             }
         }
     }
@@ -219,7 +239,11 @@ Never give a definitive diagnosis.
                     isTTSDownloading = true
 
                     RunAnywhere.downloadModel(TTS_MODEL_ID)
-                        .catch { errorMessage = it.message }
+                        .catch {
+                            errorMessage = it.message
+                            isTTSDownloading = false
+                            return@launch
+                        }
                         .collect { progress ->
                             ttsDownloadProgress = progress.progress
                         }
@@ -239,6 +263,7 @@ Never give a definitive diagnosis.
             } catch (e: Exception) {
 
                 errorMessage = e.message
+                Log.e(TAG, e.message ?: "TTS error")
             }
         }
     }
@@ -248,26 +273,39 @@ Never give a definitive diagnosis.
     fun downloadAndLoadAllModels() {
 
         if (!isLLMLoaded) downloadAndLoadLLM()
+    
         if (!isSTTLoaded) downloadAndLoadSTT()
+    
         if (!isTTSLoaded) downloadAndLoadTTS()
     }
 
     // ---------------- AI Chat ----------------
 
-    // CORRECTED: Added the optional `context` parameter to the method signature
-    // to match the caller in FirstAidScreen.kt
-    suspend fun getMedicalResponse(query: String, context: String? = null): String {
+    suspend fun getMedicalResponse(
+        query: String,
+        context: String? = null
+    ): String {
 
         return try {
 
-            val contextString = if (context != null) "Context: $context\n\n" else ""
-            val prompt = "$MEDICAL_SYSTEM_PROMPT\n\n${contextString}User: $query\nAssistant:"
+            val contextString =
+                if (context != null) "Context: $context\n\n" else ""
+
+            val prompt = """
+$MEDICAL_SYSTEM_PROMPT
+
+$contextString
+User: $query
+Assistant:
+""".trimIndent()
 
             val response = RunAnywhere.chat(prompt)
 
             response ?: "No response generated."
 
         } catch (e: Exception) {
+
+            Log.e(TAG, e.message ?: "LLM error")
 
             "AI error: ${e.message}"
         }
@@ -276,32 +314,36 @@ Never give a definitive diagnosis.
     // ---------------- Text To Speech ----------------
 
     suspend fun speakText(text: String) {
+
         if (!isTTSLoaded) return
+
         try {
 
-            RunAnywhere.tts(text)
+            RunAnywhere.tts(text.take(500))
 
         } catch (e: Exception) {
 
-            Log.e("MedModelService", e.message ?: "TTS error")
+            Log.e(TAG, e.message ?: "TTS error")
         }
     }
 
     // ---------------- Speech To Text ----------------
 
-   suspend fun transcribeAudio(audio: ByteArray): String {
+    suspend fun listenSpeech(): String {
+
+        if (!isSTTLoaded) return "Speech model not loaded"
 
         return try {
-    
-            val result = RunAnywhere.stt(audio)
-    
+
+            val result = RunAnywhere.listenAndTranscribe()
+
             result ?: "No speech detected"
-    
+
         } catch (e: Exception) {
-    
-            Log.e("MedModelService", e.message ?: "STT error")
-    
-            "Transcription failed"
+
+            Log.e(TAG, e.message ?: "STT error")
+
+            "Speech recognition failed"
         }
     }
 
@@ -310,3 +352,4 @@ Never give a definitive diagnosis.
         errorMessage = null
     }
 }
+```
