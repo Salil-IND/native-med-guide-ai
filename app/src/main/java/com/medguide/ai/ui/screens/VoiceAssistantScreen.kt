@@ -1,10 +1,12 @@
+```kotlin
 package com.medguide.ai.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,9 +33,13 @@ import com.medguide.ai.services.MedModelService
 import com.medguide.ai.ui.theme.EmergencyRed
 import com.medguide.ai.ui.theme.MedBlue
 import com.medguide.ai.ui.theme.SafeGreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
 
 data class ChatMessage(
+    val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis()
@@ -44,21 +51,31 @@ fun VoiceAssistantScreen(
     onNavigateBack: () -> Unit,
     modelService: MedModelService
 ) {
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
     val listState = rememberLazyListState()
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
 
     var messages by remember {
-        mutableStateOf(listOf(
-            ChatMessage(
-                "Hello! I'm MedGuide AI, your offline emergency medical assistant. " +
-                        "You can ask me about:\n• First aid steps\n• Symptom assessment\n• Drug dosages\n• Emergency procedures\n\n" +
-                        "Tap the mic button or type your question. In emergencies, call 108!",
-                isUser = false
+        mutableStateOf(
+            listOf(
+                ChatMessage(
+                    text =
+                    "Hello! I'm MedGuide AI, your offline emergency medical assistant.\n\n" +
+                            "You can ask me about:\n" +
+                            "• First aid steps\n" +
+                            "• Symptom assessment\n" +
+                            "• Drug dosages\n" +
+                            "• Emergency procedures\n\n" +
+                            "Tap the mic button or type your question.\n" +
+                            "In emergencies call 108.",
+                    isUser = false
+                )
             )
-        ))
+        )
     }
+
     var inputText by remember { mutableStateOf("") }
     var isProcessing by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf("") }
@@ -66,72 +83,115 @@ fun VoiceAssistantScreen(
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) statusText = "Microphone ready"
+        statusText =
+            if (granted) "Microphone ready"
+            else "Microphone permission denied"
+    }
+
+    fun scrollToBottom(index: Int) {
+        scope.launch {
+            listState.animateScrollToItem(index)
+        }
     }
 
     fun sendMessage(text: String) {
+
         if (text.isBlank() || isProcessing) return
-        messages = messages + ChatMessage(text, isUser = true)
+
+        if (!modelService.isLLMLoaded) {
+            statusText = "Load AI model first in Setup"
+            return
+        }
+
+        val userMessage = ChatMessage(text = text, isUser = true)
+
+        val updatedUserMessages = messages + userMessage
+        messages = updatedUserMessages
+        scrollToBottom(updatedUserMessages.size - 1)
+
         inputText = ""
         isProcessing = true
         statusText = "Thinking..."
 
         scope.launch {
-            val response = modelService.getMedicalResponse(text)
-            messages = messages + ChatMessage(response, isUser = false)
+
+            try {
+
+                val response = withContext(Dispatchers.IO) {
+                    modelService.getMedicalResponse(text)
+                }
+
+                val aiMessage =
+                    ChatMessage(text = response, isUser = false)
+
+                val updatedMessages = messages + aiMessage
+                messages = updatedMessages
+                scrollToBottom(updatedMessages.size - 1)
+
+                if (modelService.isTTSLoaded) {
+                    launch(Dispatchers.IO) {
+                        modelService.speakText(response)
+                    }
+                }
+
+            } catch (e: Exception) {
+
+                val errorMessage =
+                    ChatMessage(
+                        text = "Error generating response. Please try again.",
+                        isUser = false
+                    )
+
+                messages = messages + errorMessage
+                scrollToBottom(messages.size - 1)
+            }
+
             isProcessing = false
             statusText = ""
-            // Auto-speak response
-            if (modelService.isTTSLoaded) {
-                modelService.speakText(response)
-            }
-            listState.animateScrollToItem(messages.size - 1)
         }
     }
 
     Scaffold(
+
         topBar = {
+
             TopAppBar(
+
                 title = {
+
                     Column {
-                        Text("🎤 Voice Medical Assistant", fontWeight = FontWeight.Bold)
+
                         Text(
-                            if (modelService.isLLMLoaded) "AI Ready • Offline Mode" else "Load models to enable AI",
+                            "🎤 Voice Medical Assistant",
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            if (modelService.isLLMLoaded)
+                                "AI Ready • Offline Mode"
+                            else
+                                "Load models to enable AI",
                             fontSize = 11.sp,
-                            color = if (modelService.isLLMLoaded) SafeGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                            color =
+                            if (modelService.isLLMLoaded)
+                                SafeGreen
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
+
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, null)
                     }
                 }
             )
         },
+
         bottomBar = {
+
             Column {
-                if (!modelService.isLLMLoaded) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("⚠️", fontSize = 20.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "AI model not loaded. Go to Setup to download models (required once, works offline forever).",
-                                fontSize = 12.sp,
-                                color = Color(0xFF5D4037)
-                            )
-                        }
-                    }
-                }
 
                 Row(
                     modifier = Modifier
@@ -140,44 +200,73 @@ fun VoiceAssistantScreen(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Mic button
-                    val hasMicPermission = ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
 
-                    val pulseAnim = rememberInfiniteTransition()
-                    val scale by pulseAnim.animateFloat(
-                        initialValue = 1f, targetValue = 1.1f,
-                        animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse)
+                    val hasMicPermission =
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                    val scale by animateFloatAsState(
+                        targetValue = if (isProcessing) 1.1f else 1f,
+                        animationSpec = tween(300),
+                        label = ""
                     )
 
                     FloatingActionButton(
+
+                        enabled = !isProcessing,
+
                         onClick = {
+
                             if (!hasMicPermission) {
-                                micPermission.launch(Manifest.permission.RECORD_AUDIO)
-                            } else {
-                                // Voice recording placeholder — integrate with RunAnywhere STT
-                                statusText = "Voice recording requires STT model"
+                                micPermission.launch(
+                                    Manifest.permission.RECORD_AUDIO
+                                )
+                                return@FloatingActionButton
+                            }
+
+                            if (!modelService.isSTTLoaded) {
+                                statusText = "Load STT model in Setup"
+                                return@FloatingActionButton
+                            }
+
+                            scope.launch {
+
+                                statusText = "Listening..."
+
+                                val speech =
+                                    withContext(Dispatchers.IO) {
+                                        modelService.listenSpeech()
+                                    }
+
+                                if (!speech.isNullOrBlank()) {
+                                    sendMessage(speech)
+                                }
+
+                                statusText = ""
                             }
                         },
+
                         modifier = Modifier
                             .size(52.dp)
-                            .scale(if (isProcessing) scale else 1f),
-                        containerColor = if (hasMicPermission) EmergencyRed else Color.Gray,
-                        contentColor = Color.White,
-                        shape = CircleShape
+                            .scale(scale),
+
+                        containerColor = EmergencyRed,
+                        contentColor = Color.White
                     ) {
-                        Icon(Icons.Default.Mic, contentDescription = "Voice input", modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Mic, null)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Text input
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ask a medical question...", fontSize = 14.sp) },
+                        placeholder = {
+                            Text("Ask a medical question...")
+                        },
                         shape = RoundedCornerShape(24.dp),
                         singleLine = true,
                         enabled = !isProcessing
@@ -185,28 +274,38 @@ fun VoiceAssistantScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Send button
                     FilledIconButton(
                         onClick = { sendMessage(inputText) },
-                        enabled = inputText.isNotBlank() && !isProcessing,
+                        enabled =
+                        inputText.isNotBlank() && !isProcessing,
                         modifier = Modifier.size(48.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(
+                        colors =
+                        IconButtonDefaults.filledIconButtonColors(
                             containerColor = MedBlue
                         )
                     ) {
+
                         if (isProcessing) {
+
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 color = Color.White,
                                 strokeWidth = 2.dp
                             )
+
                         } else {
-                            Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+
+                            Icon(
+                                Icons.Default.Send,
+                                null,
+                                tint = Color.White
+                            )
                         }
                     }
                 }
 
                 if (statusText.isNotEmpty()) {
+
                     Text(
                         statusText,
                         modifier = Modifier
@@ -214,26 +313,43 @@ fun VoiceAssistantScreen(
                             .padding(horizontal = 16.dp)
                             .padding(bottom = 8.dp),
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
+
     ) { padding ->
+
         LazyColumn(
+
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
+
             state = listState,
+
             verticalArrangement = Arrangement.spacedBy(8.dp),
+
             contentPadding = PaddingValues(vertical = 12.dp)
+
         ) {
-            // Quick action chips
+
             item {
+
                 Column {
-                    Text("Quick Questions:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    Text(
+                        "Quick Questions:",
+                        fontSize = 12.sp,
+                        color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     Spacer(modifier = Modifier.height(6.dp))
+
                     val quickQuestions = listOf(
                         "How to do CPR?",
                         "Signs of heart attack",
@@ -242,37 +358,63 @@ fun VoiceAssistantScreen(
                         "Dosage of paracetamol",
                         "Signs of stroke"
                     )
+
                     quickQuestions.chunked(3).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+
+                        Row(
+                            horizontalArrangement =
+                            Arrangement.spacedBy(6.dp)
+                        ) {
+
                             row.forEach { q ->
+
                                 AssistChip(
                                     onClick = { sendMessage(q) },
-                                    label = { Text(q, fontSize = 11.sp) },
-                                    enabled = !isProcessing && modelService.isLLMLoaded
+                                    label = {
+                                        Text(q, fontSize = 11.sp)
+                                    },
+                                    enabled =
+                                    !isProcessing &&
+                                            modelService.isLLMLoaded
                                 )
                             }
                         }
+
                         Spacer(modifier = Modifier.height(4.dp))
                     }
+
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
 
-            items(messages) { msg ->
-                MessageBubble(message = msg)
+            items(
+                messages,
+                key = { it.id }
+            ) { msg ->
+
+                MessageBubble(msg, screenWidth)
             }
         }
     }
 }
 
 @Composable
-fun MessageBubble(message: ChatMessage) {
+fun MessageBubble(
+    message: ChatMessage,
+    screenWidth: androidx.compose.ui.unit.Dp
+) {
+
     val isUser = message.isUser
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        horizontalArrangement =
+        if (isUser) Arrangement.End
+        else Arrangement.Start
     ) {
+
         if (!isUser) {
+
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -280,38 +422,48 @@ fun MessageBubble(message: ChatMessage) {
                     .background(EmergencyRed),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🏥", fontSize = 16.sp)
+                Text("🏥")
             }
+
             Spacer(modifier = Modifier.width(8.dp))
         }
 
         Box(
             modifier = Modifier
-                .widthIn(max = 300.dp)
+                .widthIn(max = screenWidth * 0.75f)
                 .clip(
                     RoundedCornerShape(
-                        topStart = if (isUser) 16.dp else 4.dp,
-                        topEnd = if (isUser) 4.dp else 16.dp,
+                        topStart =
+                        if (isUser) 16.dp else 4.dp,
+                        topEnd =
+                        if (isUser) 4.dp else 16.dp,
                         bottomStart = 16.dp,
                         bottomEnd = 16.dp
                     )
                 )
                 .background(
-                    if (isUser) MedBlue
-                    else MaterialTheme.colorScheme.surfaceVariant
+                    if (isUser)
+                        MedBlue
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
                 )
                 .padding(12.dp)
         ) {
+
             Text(
-                text = message.text,
-                color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
+                message.text,
+                color =
+                if (isUser) Color.White
+                else MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp,
                 lineHeight = 20.sp
             )
         }
 
         if (isUser) {
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -319,8 +471,14 @@ fun MessageBubble(message: ChatMessage) {
                     .background(MedBlue),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+
+                Icon(
+                    Icons.Default.Person,
+                    null,
+                    tint = Color.White
+                )
             }
         }
     }
 }
+```
